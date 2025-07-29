@@ -23,7 +23,7 @@
 int32_t arr[4] = {5, 4, 3, 2}; //{}
 int32_t arr2[] = {true, false, false, true};
 bool arr3[3][3] = {{true, false, false}, {true, false, false}, {true, false, false}};
-
+int arr4[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
 // string de C
 char name[] = "Fulano de Tal";
 char name2[] = {'F', 'u', 'l', 'a', 'n', 'o', ' ', 'd', 'e', ' ', 'T', 'a', 'l', '\0'};
@@ -34,9 +34,79 @@ char name4[] = "agora foi";
 //   Array
 //   Ponteiros
 uint8_t bytes[100];
+
+// bitfield
+struct config {
+	uint16_t res1: 3;
+	uint16_t acc_en: 1;
+	uint16_t res2: 1;
+	uint16_t led_en: 1;
+	uint16_t res3: 16;
+};
+
+struct payload {
+	uint16_t level: 4;
+	uint16_t temp: 5;             /* 18 + temp */
+	uint16_t last_fill_hour: 5;   /* 24 hours  */
+	uint16_t last_fill_minute: 2; /* 0, 15, 30, 45 minutes */
+};
+
+union payload_data {
+	struct payload payload;
+	uint8_t bytes[2];
+} p;
+
+union variant {
+	char c;
+	short s;
+	int i;
+	bool b;
+	float f;
+};
+
+struct calc {
+	enum {
+		ADD,
+		SUB,
+		DIV,
+		MULT,
+		MINUS
+	} __attribute__((packed)) op;
+	bool flag1;
+	bool flag2;
+	bool flag3;
+	union {
+		struct {
+			int a;
+			int b;
+		};
+		struct {
+			int u;
+		};
+	};
+} __attribute__((aligned(16)));
+
+int op(struct calc *c)
+{
+	switch (c->op) {
+	case ADD:
+		return c->a + c->b;
+	case SUB:
+		return c->a - c->b;
+	case DIV:
+		return c->a / c->b;
+	case MULT:
+		return c->a * c->b;
+	case MINUS:
+		return -c->u;
+	}
+}
+
+typedef union variant variant_t;
+
+union variant var = {.s = 200};
 // Estruturas
 // Union
-
 #define BIT(n) (1 << n)
 
 #define LED_ENABLED BIT(5)
@@ -56,6 +126,12 @@ struct point {
 
 struct point point1 = {10, 20};
 struct point point2 = {30, 40};
+
+int get_arr4_element(int row, int col)
+{
+	int *p4 = (int *)arr4;
+	return p4[row * 3 + col];
+}
 
 int main(int argc, char *argv[])
 {
@@ -116,11 +192,20 @@ int main(int argc, char *argv[])
 	printf("x = %d, &x = %p, y = %d, &y = %p, p = %p, &y - &x = %d\n", x, &x, y, &y, p,
 	       (int)(&x - &y));
 
-	// bool *p3 = arr3;
-	// p3[0][1] = 30;
-	// arr3[0][1] = 30;
+	// struct row row[] = {{.col0 = 1, .col1 = 2, .col2 = 3},
+	// 		    {.col0 = 4, .col1 = 5, .col2 = 6},
+	// 		    {.col0 = 7, .col1 = 8, .col2 = 9}};
+
+	// row[0].col0 = 10;
+	// row[0].col1 = 20;
+	// row[0].col2 = 30;
+	printf("value %d\n", get_arr4_element(1, 1));
 
 	printf("sizeof struct point %zu\n", sizeof(struct point));
 
+	uint8_t c1 = ACC_ENABLED | LED_ENABLED;
+	struct config cfg = {.acc_en = 1, .led_en = 0};
+
+	printf("Config %#.02x\n", *((uint8_t *)&cfg));
 	return 0;
 }
